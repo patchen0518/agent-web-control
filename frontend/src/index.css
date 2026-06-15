@@ -1,0 +1,342 @@
+:root {
+  --bg-primary: #141414;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #252525;
+  --border: #2e2e2e;
+  --text-primary: #d4d4d4;
+  --text-secondary: #666;
+  --accent: #0e9de2;
+  --accent-dim: rgba(14, 157, 226, 0.15);
+  --danger: #c0392b;
+  --dock-width: 52px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+}
+
+/* ── App shell ── */
+.app {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Dock ── */
+.dock {
+  width: var(--dock-width);
+  height: 100%;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dock-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c0392b;
+  margin-bottom: 8px;
+  transition: background 0.3s;
+}
+
+.dock-status.connected {
+  background: #27ae60;
+}
+
+.dock-btn {
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+}
+
+.dock-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dock-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.dock-icon {
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.dock-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+/* ── Canvas ── */
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* ── Floating window ── */
+.window {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.window-titlebar {
+  height: 34px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  cursor: move;
+  flex-shrink: 0;
+  user-select: none;
+  gap: 8px;
+}
+
+.window-title {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.window-btn {
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.window-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.window-btn.close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.window-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* ── Command Palette ── */
+.palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.palette {
+  width: 480px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+.palette-input {
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+}
+
+.palette-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.palette-list {
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+
+.palette-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.palette-item.active {
+  color: var(--accent);
+}
+
+.palette-item-icon {
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-size: 13px;
+  width: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.palette-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.palette-item-focused {
+  background: rgba(14, 157, 226, 0.08);
+}
+
+.palette-hint {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+}
+
+/* ── MCP Audit Log ── */
+.audit-entry {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.audit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--bg-tertiary);
+  font-size: 13px;
+  user-select: none;
+  transition: background 0.1s;
+}
+
+.audit-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.audit-tool {
+  font-weight: 600;
+  color: var(--accent);
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+}
+
+.audit-meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.audit-chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.audit-body {
+  padding: 8px 12px 12px;
+  background: var(--bg-primary);
+}
+
+.audit-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin: 8px 0 4px;
+}
+
+.audit-json {
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  color: #9ec899;
+  overflow-x: auto;
+  white-space: pre;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.empty-state {
+  padding: 40px 16px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
