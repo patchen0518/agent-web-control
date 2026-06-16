@@ -43,11 +43,24 @@ export function MainTerminal() {
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
 
-    // Defer fit until after browser layout so the container has real pixel dimensions
-    const rafId = requestAnimationFrame(() => fitAddon.fit());
+    // Wait for custom fonts AND layout before fitting so character-width
+    // calculation uses the real glyph metrics, not the fallback monospace.
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      if (!cancelled) requestAnimationFrame(() => fitAddon.fit());
+    });
 
     termRef.current = term;
     fitAddonRef.current = fitAddon;
+
+    // Shift+Enter → newline in Claude CLI without submitting
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type === 'keydown' && e.key === 'Enter' && e.shiftKey) {
+        send({ type: 'pty_input', data: '\x1b[27;2;13~' });
+        return false;
+      }
+      return true;
+    });
 
     // Keystrokes → daemon PTY stdin
     const disposeOnData = term.onData((data) => {
@@ -67,7 +80,7 @@ export function MainTerminal() {
     ro.observe(container);
 
     return () => {
-      cancelAnimationFrame(rafId);
+      cancelled = true;
       ro.disconnect();
       disposeOnData.dispose();
       disposeOnResize.dispose();
