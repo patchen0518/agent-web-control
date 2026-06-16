@@ -8,7 +8,7 @@ export function MainTerminal() {
   const containerRef = useRef(null);
   const termRef = useRef(null);
   const fitAddonRef = useRef(null);
-  const { subscribe, send } = useWebSocket();
+  const { connected, subscribe, send } = useWebSocket();
 
   useEffect(() => {
     const term = new Terminal({
@@ -42,7 +42,9 @@ export function MainTerminal() {
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
-    fitAddon.fit();
+
+    // Defer fit until after browser layout so the container has real pixel dimensions
+    const rafId = requestAnimationFrame(() => fitAddon.fit());
 
     termRef.current = term;
     fitAddonRef.current = fitAddon;
@@ -57,17 +59,32 @@ export function MainTerminal() {
       send({ type: 'pty_resize', cols, rows });
     });
 
-    // Keep terminal fitted when the window container is resized
-    const ro = new ResizeObserver(() => fitAddonRef.current?.fit());
-    ro.observe(containerRef.current);
+    // Keep terminal fitted when the container is resized
+    const container = containerRef.current;
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(() => fitAddonRef.current?.fit());
+    });
+    ro.observe(container);
 
     return () => {
+      cancelAnimationFrame(rafId);
       ro.disconnect();
       disposeOnData.dispose();
       disposeOnResize.dispose();
       term.dispose();
     };
   }, [send]);
+
+  // Resync PTY dimensions each time the WebSocket connection is established.
+  // The initial fit() may fire before the socket is open, dropping the resize
+  // message and leaving the PTY at its default 80×24. Sending it here on every
+  // connect guarantees the PTY matches xterm's actual column/row count.
+  useEffect(() => {
+    if (!connected || !termRef.current || !fitAddonRef.current) return;
+    fitAddonRef.current.fit();
+    const { cols, rows } = termRef.current;
+    send({ type: 'pty_resize', cols, rows });
+  }, [connected, send]);
 
   // Stream PTY output from daemon into the terminal
   useEffect(() => {
@@ -86,7 +103,7 @@ export function MainTerminal() {
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%', padding: '4px', boxSizing: 'border-box' }}
+      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
     />
   );
 }
