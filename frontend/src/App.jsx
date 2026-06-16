@@ -17,6 +17,7 @@ export default function App() {
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [agentWidth, setAgentWidth] = useState(420);
+  const [filesHeight, setFilesHeight] = useState(300);
 
   function startSidebarResize(e) {
     e.preventDefault();
@@ -27,6 +28,27 @@ export default function App() {
 
     function onMove(e) {
       setSidebarWidth(Math.max(140, Math.min(520, startW + (e.clientX - startX))));
+    }
+    function onUp() {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function startInternalResize(e) {
+    if (!filesOpen || !changesOpen) return;
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = filesHeight;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'row-resize';
+
+    function onMove(e) {
+      setFilesHeight(Math.max(56, startH + (e.clientY - startY)));
     }
     function onUp() {
       document.body.style.userSelect = '';
@@ -125,7 +147,10 @@ export default function App() {
     <div className="app">
       {/* Left sidebar */}
       <div className="sidebar" style={{ width: sidebarWidth }}>
-        <div className={`sidebar-section files${filesOpen ? '' : ' collapsed'}`}>
+        <div
+          className={`sidebar-section files${filesOpen ? '' : ' collapsed'}`}
+          style={filesOpen ? { flex: `0 0 ${filesHeight}px` } : undefined}
+        >
           <div className="sidebar-header" onClick={() => setFilesOpen((v) => !v)}>
             <span className="sidebar-chevron">{filesOpen ? '▾' : '▸'}</span>
             Files
@@ -136,6 +161,9 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Horizontal divider between Files and Source Changes */}
+        <div className="resize-divider horizontal" onMouseDown={startInternalResize} />
 
         <div className={`sidebar-section changes${changesOpen ? '' : ' collapsed'}`}>
           <div className="sidebar-header" onClick={() => setChangesOpen((v) => !v)}>

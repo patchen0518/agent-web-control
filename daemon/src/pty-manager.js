@@ -8,8 +8,10 @@ class PtyManager {
 
     this._pty = pty.spawn(command, args, {
       name: 'xterm-256color',
-      cols: process.stdout.columns || 80,
-      rows: process.stdout.rows || 24,
+      // Start at a standard 80×24; the browser sends pty_resize immediately
+      // on connect and becomes the sole authority on dimensions.
+      cols: 80,
+      rows: 24,
       cwd,
       env: process.env,
     });
@@ -33,10 +35,10 @@ class PtyManager {
       });
     }
 
-    // Keep PTY cols/rows in sync with physical terminal
-    process.stdout.on('resize', () => {
-      this._pty.resize(process.stdout.columns, process.stdout.rows);
-    });
+    // Intentionally NOT syncing to the physical terminal's resize events.
+    // The browser xterm.js is the sole authority on PTY dimensions; letting
+    // the physical window resize override those settings causes the PTY column
+    // count to diverge from what xterm renders, garbling cursor-positioned UI.
   }
 
   // Register a callback invoked for every byte of PTY output.
