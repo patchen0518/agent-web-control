@@ -2,6 +2,7 @@
 'use strict';
 
 const fs = require('fs/promises');
+const os = require('os');
 const path = require('path');
 const { createServer, DAEMON_PORT } = require('./websocket-server');
 const { PtyManager } = require('./pty-manager');
@@ -12,6 +13,17 @@ const command = process.argv[2] || 'claude';
 const args = process.argv.slice(3);
 const cwd = process.env.CLAUDE_WEB_CWD || process.cwd();
 
+async function readClaudeConfig() {
+  try {
+    const configPath = path.join(os.homedir(), '.claude', 'settings.json');
+    const raw = await fs.readFile(configPath, 'utf8');
+    const config = JSON.parse(raw);
+    return { shiftEnter: !!(config.shiftEnter || config.shift_enter) };
+  } catch {
+    return { shiftEnter: false };
+  }
+}
+
 function broadcast(wss, payload) {
   const msg = JSON.stringify(payload);
   for (const client of wss.clients) {
@@ -20,13 +32,20 @@ function broadcast(wss, payload) {
 }
 
 async function main() {
+  const claudeConfig = await readClaudeConfig();
+  const dashboardUrl = `http://127.0.0.1:${DAEMON_PORT}`;
+
   const { httpServer, wss } = createServer();
 
   httpServer.on('listening', () => {
-    console.log(`[daemon] Dashboard:  http://127.0.0.1:${DAEMON_PORT}`);
+    console.log(`\n[daemon] ┌─────────────────────────────────────────────────┐`);
+    console.log(`[daemon] │  Agent Dashboard ready                          │`);
+    console.log(`[daemon] │  Open in browser: ${dashboardUrl.padEnd(29)}│`);
+    console.log(`[daemon] └─────────────────────────────────────────────────┘`);
     console.log(`[daemon] WebSocket:  ws://127.0.0.1:${DAEMON_PORT}`);
     console.log(`[daemon] Spawning:   ${command} ${args.join(' ')}`);
     console.log(`[daemon] Watching:   ${cwd}`);
+    console.log(`[daemon] Shift+Enter: ${claudeConfig.shiftEnter ? 'enabled' : 'disabled (set shiftEnter:true in ~/.claude/settings.json to enable)'}`);
   });
 
   const send = (payload) => broadcast(wss, payload);
@@ -49,6 +68,9 @@ async function main() {
     const sendToClient = (payload) => {
       if (ws.readyState === 1) ws.send(JSON.stringify(payload));
     };
+
+    // Send config and dashboard info to the new client
+    sendToClient({ type: 'agent_config', dashboardUrl, shiftEnter: claudeConfig.shiftEnter });
 
     // Seed the new client: file tree + any uncommitted changes
     buildFileTree(cwd, cwd)

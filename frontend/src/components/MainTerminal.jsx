@@ -8,6 +8,7 @@ export function MainTerminal() {
   const containerRef = useRef(null);
   const termRef = useRef(null);
   const fitAddonRef = useRef(null);
+  const shiftEnterRef = useRef(false);
   const { connected, subscribe, send } = useWebSocket();
 
   useEffect(() => {
@@ -53,11 +54,13 @@ export function MainTerminal() {
     termRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Shift+Enter → newline in Claude CLI without submitting
+    // Shift+Enter → newline only when shiftEnter is enabled in Claude Code settings
     term.attachCustomKeyEventHandler((e) => {
       if (e.type === 'keydown' && e.key === 'Enter' && e.shiftKey) {
-        send({ type: 'pty_input', data: '\x1b[27;2;13~' });
-        return false;
+        if (shiftEnterRef.current) {
+          send({ type: 'pty_input', data: '\x1b[27;2;13~' });
+          return false;
+        }
       }
       return true;
     });
@@ -99,6 +102,17 @@ export function MainTerminal() {
     send({ type: 'pty_resize', cols, rows });
   }, [connected, send]);
 
+  // Apply agent config (shiftEnter setting) and show startup banner
+  useEffect(() => {
+    return subscribe('agent_config', (payload) => {
+      shiftEnterRef.current = !!payload.shiftEnter;
+      if (termRef.current && payload.dashboardUrl) {
+        const shiftStatus = payload.shiftEnter ? 'Shift+Enter: multiline enabled' : 'Shift+Enter: disabled';
+        termRef.current.writeln(`\r\x1b[36m[Claude Web] Dashboard: ${payload.dashboardUrl}  |  ${shiftStatus}\x1b[0m\r`);
+      }
+    });
+  }, [subscribe]);
+
   // Stream PTY output from daemon into the terminal
   useEffect(() => {
     return subscribe('pty_output', (payload) => {
@@ -106,10 +120,15 @@ export function MainTerminal() {
     });
   }, [subscribe]);
 
-  // Show agent exit message in the terminal
+  // Graceful shutdown message when agent exits
   useEffect(() => {
-    return subscribe('agent_exit', (payload) => {
-      termRef.current?.writeln(`\r\n\x1b[33m[Agent exited with code ${payload.code}]\x1b[0m`);
+    return subscribe('agent_exit', () => {
+      const term = termRef.current;
+      if (!term) return;
+      term.writeln('\r\n\x1b[1;36m╔═══════════════════════════════════════╗\x1b[0m');
+      term.writeln('\x1b[1;36m║        Dashboard closed                ║\x1b[0m');
+      term.writeln('\x1b[1;36m║  The agent session has ended.          ║\x1b[0m');
+      term.writeln('\x1b[1;36m╚═══════════════════════════════════════╝\x1b[0m\r');
     });
   }, [subscribe]);
 
