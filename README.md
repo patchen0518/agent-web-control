@@ -1,5 +1,7 @@
 # Agent-Web-Control
 
+![Agent-Web-Control](snapshot.png)
+
 A local web-based "Mission Control" dashboard for CLI AI agents (Claude Code, Gemini CLI, etc.). It wraps the agent in a PTY, streams its terminal output to a browser via WebSocket, and adds read-only observability panels for file diffs and MCP tool calls — without touching the agent's execution loop.
 
 ## How it works
